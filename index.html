@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxima — Live Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1012;--accent:#8FBF6B;--accent-glow:rgba(143,191,107,0.06);--white:#ffffff;--secondary:rgba(255,255,255,0.45);--tertiary:rgba(255,255,255,0.18)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:#fff;font-family:'Roboto',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ─── APP ─── */
+#app{opacity:0;min-height:100vh}
+#app.revealed{animation:appIn .8s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes appIn{from{opacity:0;transform:scale(.98);filter:blur(3px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
+
+/* ─── INNER PAGE HEADER ─── */
+#app-header{position:sticky;top:0;left:0;right:0;height:auto;padding:16px 40px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(14,16,18,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.hdr-name{font-family:'Roboto Slab',serif;font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+
+/* ─── HOME PAGE ─── */
+.home-corner{position:fixed;width:20px;height:20px;z-index:5;opacity:0.2}
+.home-corner.tl{top:32px;left:32px;border-top:1px solid #8FBF6B;border-left:1px solid #8FBF6B}
+.home-corner.tr{top:32px;right:32px;border-top:1px solid #8FBF6B;border-right:1px solid #8FBF6B}
+.home-corner.bl{bottom:32px;left:32px;border-bottom:1px solid #8FBF6B;border-left:1px solid #8FBF6B}
+.home-corner.br{bottom:32px;right:32px;border-bottom:1px solid #8FBF6B;border-right:1px solid #8FBF6B}
+.home-main{position:relative;z-index:5;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.home-title{font-family:'Roboto Slab',serif;font-weight:700;font-size:26px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:0;animation:homeFadeUp 0.8s ease-out 0.3s both}
+.home-open-btn{margin-top:40px;background:#8FBF6B;color:#0e1012;border:none;padding:14px 52px;font-family:'Roboto',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;border-radius:8px;cursor:pointer;transition:filter 0.15s,transform 0.15s;animation:homeFadeUp 0.8s ease-out 0.5s both}
+.home-open-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.home-status{position:fixed;bottom:0;left:0;right:0;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.04);z-index:10}
+.home-status p{font-size:10px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.18);display:flex;align-items:center;gap:8px}
+.home-dot{width:5px;height:5px;border-radius:50%;background:#8FBF6B;animation:homeBlink 2.5s ease-in-out infinite}
+@keyframes homeBlink{0%,100%{opacity:1}50%{opacity:0.2}}
+@keyframes homeFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── PAGES ─── */
+.page{display:none;min-height:100vh}
+.page.active{display:block}
+#page-home.active{display:block}
+.container{max-width:960px;margin:0 auto;padding:0 32px 48px}
+
+/* ─── INNER PAGE LAYOUT ─── */
+.page-header{display:flex;align-items:center;justify-content:center;position:relative;padding:36px 40px 28px}
+.page-title{font-family:'Roboto Slab',serif;font-size:18px;font-weight:700;letter-spacing:0.08em;text-align:center;background:linear-gradient(135deg,#fff 60%,#8FBF6B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.back-btn{position:absolute;left:40px;display:flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(255,255,255,0.03);font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);cursor:pointer;transition:border-color 0.15s,color 0.15s,background 0.15s}
+.back-btn::before{content:'';display:block;width:6px;height:6px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+.back-btn:hover{border-color:rgba(143,191,107,0.35);color:#8FBF6B;background:rgba(143,191,107,0.04)}
+
+/* ─── CARDS / SECTIONS ─── */
+.card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:32px;margin-bottom:48px;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.section-title{font-family:'Roboto Slab',serif;font-weight:700;font-size:20px;margin-bottom:24px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px}
+
+/* ─── INPUTS ─── */
+.input-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.input-grid.cols3{grid-template-columns:repeat(3,1fr)}
+.input-grid.cols4{grid-template-columns:repeat(4,1fr)}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+.field input,.field select{height:48px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Roboto',sans-serif;font-size:15px;font-weight:500;padding:0 14px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:rgba(143,191,107,0.5);box-shadow:0 0 0 3px rgba(143,191,107,0.08)}
+.field select option{background:#1a1c20}
+.field .sub{font-size:11px;color:rgba(255,255,255,0.25);margin-top:2px}
+.aov-display{background:linear-gradient(135deg,rgba(143,191,107,0.07),rgba(143,191,107,0.02));border:1px solid rgba(143,191,107,0.2);border-radius:10px;padding:18px 24px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:0 2px 8px rgba(143,191,107,0.03)}
+.aov-label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0}
+.aov-value{font-family:'Roboto Slab',serif;font-weight:700;font-size:28px;color:#8FBF6B}
+.plan-eq{font-size:13px;color:rgba(255,255,255,0.35);margin-top:8px;width:100%}
+
+/* ─── DIAGNOSTIC BADGES ─── */
+/* NC Callout banner */
+.nc-callout{background:linear-gradient(135deg,rgba(143,191,107,0.07),rgba(143,191,107,0.015));border:1px solid rgba(143,191,107,0.22);border-radius:12px;padding:24px 28px;margin-bottom:28px;display:grid;grid-template-columns:auto 1px 1fr;gap:28px;align-items:center;box-shadow:0 2px 16px rgba(143,191,107,0.04)}
+.nc-callout-left{display:flex;flex-direction:column}
+.nc-callout-eyebrow{font-size:10px;text-transform:uppercase;color:#8FBF6B;opacity:0.7;letter-spacing:0.16em;margin-bottom:6px}
+.nc-callout-number{font-family:'Roboto Slab',serif;font-weight:700;font-size:48px;color:#8FBF6B;line-height:1}
+.nc-callout-spend{font-size:11px;color:rgba(255,255,255,0.18);margin-top:6px}
+.nc-callout-divider{width:1px;height:100%;background:rgba(143,191,107,0.18)}
+.nc-callout-text{font-size:13px;color:rgba(255,255,255,0.45);line-height:1.7}
+.nc-callout-text strong{color:#fff;font-weight:600}
+/* Flow table */
+.flow-table{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.flow-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.015)}
+.flow-header span{font-size:10px;text-transform:uppercase;color:var(--tertiary);letter-spacing:0.1em}
+.flow-header span:not(:first-child){text-align:right}
+.flow-section{padding:10px 24px 6px;font-size:9px;text-transform:uppercase;color:rgba(255,255,255,0.1);letter-spacing:0.12em;background:rgba(255,255,255,0.015)}
+.flow-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s}
+.flow-row:nth-child(even){background:rgba(255,255,255,0.01)}
+.flow-row:hover{background:rgba(255,255,255,0.025)}
+.flow-row:last-child{border-bottom:none}
+.flow-metric{font-size:13px;color:rgba(255,255,255,0.45);display:flex;align-items:center;gap:10px}
+.flow-metric::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15);flex-shrink:0}
+.flow-metric.under::before{background:#8FBF6B}
+.flow-yours{font-family:'Roboto Slab',serif;font-weight:700;font-size:15px;color:#fff;text-align:right}
+.flow-bench{font-size:12px;text-align:right;display:flex;justify-content:flex-end;align-items:center;gap:4px}
+.flow-bench .avg{color:var(--tertiary)}
+.flow-bench .sep{color:rgba(255,255,255,0.08)}
+.flow-bench .strong{color:rgba(143,191,107,0.5)}
+.flow-gap{text-align:right;display:flex;justify-content:flex-end;align-items:center}
+.flow-gap .pill{background:rgba(143,191,107,0.1);color:#8FBF6B;font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid rgba(143,191,107,0.15)}
+.flow-row.derived .flow-metric{font-size:12px;color:rgba(255,255,255,0.3)}
+.flow-row.derived .flow-yours{font-size:14px;color:#8FBF6B}
+
+/* ─── BRIDGE CALLOUT ─── */
+
+/* ─── VOLUME CALLOUT ─── */
+.vol-callout{background:linear-gradient(135deg,rgba(143,191,107,0.08),rgba(143,191,107,0.02));border:1px solid rgba(143,191,107,0.25);border-radius:12px;padding:24px 32px;margin-bottom:32px;display:flex;align-items:center;gap:32px;box-shadow:0 2px 16px rgba(143,191,107,0.04)}
+.vol-left{flex-shrink:0;text-align:left}
+.vol-eyebrow{font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#8FBF6B;margin-bottom:6px}
+.vol-number{font-family:'Roboto Slab',serif;font-weight:700;font-size:36px;color:#8FBF6B;line-height:1.1}
+.vol-sub{font-size:12px;color:rgba(255,255,255,0.45);margin-top:4px}
+.vol-divider{width:1px;align-self:stretch;background:rgba(143,191,107,0.2);flex-shrink:0}
+.vol-right{flex:1}
+.vol-right p{font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6}
+.vol-right strong{color:#fff;font-weight:600}
+
+/* ─── COMPARISON TABLE ─── */
+.comp-header{display:grid;grid-template-columns:1fr 140px 140px;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.015)}
+.comp-header span{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase}
+.comp-hdr-cur{color:rgba(255,255,255,0.45);text-align:right}
+.comp-hdr-opt{color:#8FBF6B;text-align:right}
+.comp-row{display:grid;grid-template-columns:1fr 140px 140px;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.15s}
+.comp-row:nth-child(even){background:rgba(255,255,255,0.012)}
+.comp-row:hover{background:rgba(255,255,255,0.025)}
+.comp-row:last-child{border-bottom:none}
+.comp-label{font-size:12px;color:rgba(255,255,255,0.45);font-family:'Roboto',sans-serif;display:flex;align-items:center}
+.comp-cur{font-family:'Roboto Slab',serif;font-size:14px;font-weight:600;color:#fff;text-align:right;display:flex;align-items:center;justify-content:flex-end}
+.comp-opt{font-family:'Roboto Slab',serif;font-size:14px;font-weight:600;color:#fff;text-align:right;border-left:1px solid rgba(255,255,255,0.04);padding-left:24px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center}
+.comp-opt.changed{color:#8FBF6B;font-weight:700}
+.comp-lift-sub{font-size:10px;color:rgba(143,191,107,0.7);margin-top:2px}
+.comp-row.cash-row{background:rgba(143,191,107,0.03);border-top:1px solid rgba(143,191,107,0.1)}
+.comp-row.cash-row .comp-cur,.comp-row.cash-row .comp-opt{font-family:'Roboto Slab',serif;font-size:18px;font-weight:700}
+.comp-row.cash-row .comp-opt{color:#8FBF6B}
+
+/* ─── DAILY SIMPLIFIED ─── */
+.daily-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.daily-card{position:relative;overflow:hidden;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;text-align:center;transition:transform .2s ease,box-shadow .2s ease;cursor:default;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.daily-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8FBF6B,transparent);transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.daily-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.2)}
+.daily-card:hover::before{transform:scaleX(1)}
+.daily-card.cash-card{border-color:rgba(143,191,107,0.15);background:rgba(143,191,107,0.03)}
+.daily-card.cash-card::before{transform:scaleX(1)}
+.daily-val{font-family:'Roboto Slab',serif;font-weight:700;font-size:22px;color:#fff;margin-bottom:6px}
+.daily-val.green{color:#8FBF6B}
+.daily-lbl{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.3)}
+
+
+/* ─── FUNNEL DIAGNOSTIC ─── */
+:root{--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.07)}
+.fd-pricing-strip{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 22px;margin-bottom:24px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.fd-pricing-strip .fd-ps-field{display:flex;flex-direction:column;gap:4px}
+.fd-pricing-strip .fd-ps-field label{font-size:9px;text-transform:uppercase;color:var(--tertiary);letter-spacing:0.1em}
+.fd-pricing-strip .fd-ps-field input{height:36px;width:120px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Roboto',sans-serif;font-size:14px;font-weight:500;padding:0 10px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.fd-pricing-strip .fd-ps-field input:focus{border-color:rgba(143,191,107,0.5)}
+.fd-ps-divider{width:1px;align-self:stretch;background:rgba(255,255,255,0.06);flex-shrink:0;margin:0 4px}
+.fd-ps-aov{display:flex;flex-direction:column;gap:4px;margin-left:auto;flex-shrink:0;align-items:flex-end}
+.fd-ps-aov-label{font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(143,191,107,0.6)}
+.fd-ps-aov-val{font-family:'Roboto Slab',serif;font-size:20px;font-weight:700;color:#8FBF6B}
+/* Calls Needed */
+.fd-calls-needed{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 22px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.fd-cn-label{font-size:9px;text-transform:uppercase;letter-spacing:0.14em;color:rgba(255,255,255,0.2)}
+.fd-cn-sub{font-size:10px;color:rgba(255,255,255,0.2);margin-top:2px}
+.fd-cn-right{display:flex;align-items:center}
+.fd-cn-fig{display:flex;flex-direction:column;align-items:center}
+.fd-cn-fig-label{font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.2);margin-bottom:4px}
+.fd-cn-fig-val{font-family:'Roboto Slab',serif;font-size:24px;font-weight:700;color:#fff}
+.fd-cn-fig-val.green{color:#8FBF6B}
+.fd-cn-fig-sub{font-size:10px;color:rgba(143,191,107,0.5);margin-top:2px}
+.fd-cn-divider{width:1px;height:36px;background:rgba(255,255,255,0.06);margin:0 24px;flex-shrink:0}
+/* Pipeline */
+.fd-pipeline{display:grid;grid-template-columns:repeat(5,1fr);margin-bottom:28px;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.fd-pipe-step{position:relative;background:var(--surface);padding:20px 16px;border-right:1px solid var(--border)}
+.fd-pipe-step:last-child{border-right:none}
+.fd-pipe-step:not(:last-child)::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:0;height:0;border-left:8px solid rgba(255,255,255,0.06);border-top:6px solid transparent;border-bottom:6px solid transparent;z-index:1}
+.fd-pipe-step.accent{background:rgba(143,191,107,0.06);border-left:1px solid rgba(143,191,107,0.18)}
+.fd-pipe-num{font-size:9px;text-transform:uppercase;color:rgba(143,191,107,0.35);letter-spacing:0.14em;margin-bottom:4px;font-weight:700}
+.fd-pipe-name{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px}
+.fd-pipe-val{font-family:'Roboto Slab',serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.fd-pipe-val.green{color:#8FBF6B}
+.fd-pipe-step.accent .fd-pipe-val{font-size:20px}
+.fd-pipe-sub{font-size:10px;color:rgba(255,255,255,0.22);margin-top:6px;line-height:1.5}
+/* Channels block */
+.fd-channels{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:28px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.fd-ch-row{display:flex;border-bottom:1px solid rgba(255,255,255,0.04)}
+.fd-ch-row:last-child{border-bottom:none}
+.fd-ch-toggle{width:180px;border-right:1px solid rgba(255,255,255,0.04);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex-shrink:0}
+.fd-ch-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;transition:all .15s}
+.fd-ch-row.active .fd-ch-dot{background:#8FBF6B;border-color:#8FBF6B;box-shadow:0 0 6px rgba(143,191,107,0.3)}
+.fd-ch-name{font-size:12px;font-weight:500;color:rgba(255,255,255,0.28);transition:color .15s}
+.fd-ch-row.active .fd-ch-name{color:#fff}
+.fd-ch-name-sub{font-size:9px;color:rgba(255,255,255,0.25);margin-top:2px}
+.fd-ch-inputs{flex:1;padding:10px 20px;display:flex;gap:14px;align-items:center}
+.fd-ch-row:not(.active){opacity:0.4}
+.fd-ch-row:not(.active) .fd-ch-inputs{pointer-events:none}
+.fd-ch-vdiv{width:1px;align-self:stretch;background:rgba(255,255,255,0.05);flex-shrink:0}
+.fd-ch-field{display:flex;flex-direction:column;gap:2px}
+.fd-ch-field label{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.22);white-space:nowrap}
+.fd-ch-field input{height:30px;width:90px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:#fff;font-family:'Roboto',sans-serif;font-size:12px;font-weight:500;padding:0 8px;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+.fd-ch-field input:focus{border-color:rgba(143,191,107,0.5);box-shadow:0 0 0 2px rgba(143,191,107,0.06)}
+.fd-ch-field .hint{font-size:8px;color:rgba(255,255,255,0.14)}
+.fd-ch-field .hint strong{color:rgba(143,191,107,0.4);font-weight:600}
+/* Two-row grid for VSL & Profile */
+.fd-ch-row.two-line{min-height:96px}
+.fd-ch-inputs-2row{display:grid!important;grid-template-columns:90px 70px 1px 120px;grid-template-rows:auto auto;gap:6px 14px;align-items:start;align-content:center}
+.fd-ch-inputs-2row>:nth-child(1){grid-row:1;grid-column:1}
+.fd-ch-inputs-2row>:nth-child(2){display:none}
+.fd-ch-inputs-2row>:nth-child(3){grid-row:1;grid-column:2}
+.fd-ch-inputs-2row>:nth-child(4){grid-row:1/3;grid-column:3;align-self:stretch}
+.fd-ch-inputs-2row>:nth-child(5){grid-row:1;grid-column:4}
+.fd-ch-inputs-2row>:nth-child(6){grid-row:2;grid-column:1/3;display:none}
+.fd-ch-inputs-2row>:nth-child(6).fd-spend-show{display:block}
+/* Paid performance — card layout */
+.fd-paid-perf{margin-bottom:28px}
+.fd-paid-perf-title{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,0.2);margin-bottom:10px}
+.fd-pp-colhdr{display:grid;grid-template-columns:1.2fr 1fr .8fr .8fr 1fr .7fr 1fr;padding:0 18px 10px;gap:8px}
+.fd-pp-colhdr span{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.2)}
+.fd-pp-colhdr span:not(:first-child){text-align:right}
+.fd-pp-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.15s}
+.fd-pp-card:hover{border-color:rgba(255,255,255,0.1)}
+.fd-pp-card-row{display:grid;grid-template-columns:1.2fr 1fr .8fr .8fr 1fr .7fr 1fr;padding:11px 18px;gap:8px;background:rgba(255,255,255,0.03)}
+.fd-pp-card-row .fd-pp-ch{font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center}
+.fd-pp-card-row .fd-pp-val{font-family:'Roboto Slab',serif;font-size:13px;color:#fff;text-align:right}
+.fd-pp-total{display:grid;grid-template-columns:1.2fr 1fr .8fr .8fr 1fr .7fr 1fr;padding:12px 18px;gap:8px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px}
+.fd-pp-total .fd-pp-ch{font-size:12px;font-weight:600;color:#fff}
+.fd-pp-total .fd-pp-val{font-family:'Roboto Slab',serif;font-size:13px;color:#fff;text-align:right}
+.fd-pp-total .fd-pp-val.cash{color:#8FBF6B;font-weight:700}
+.fd-pp-pill{display:inline-block;font-size:10px;font-weight:600;padding:3px 10px;border-radius:10px;text-align:center;white-space:nowrap}
+.fd-pp-pill.strong{background:rgba(143,191,107,0.1);color:#8FBF6B;border:1px solid rgba(143,191,107,0.2)}
+.fd-pp-pill.average{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1)}
+.fd-pp-pill.needs-work{background:rgba(255,100,100,0.07);color:rgba(255,130,130,0.7);border:1px solid rgba(255,100,100,0.15)}
+.fd-ch-qc{width:140px;border-left:1px solid rgba(255,255,255,0.04);padding:10px 16px;display:flex;flex-direction:column;gap:3px;justify-content:center;flex-shrink:0}
+.fd-ch-row:not(.active) .fd-ch-qc{pointer-events:none}
+.fd-ch-qc-label{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:rgba(143,191,107,0.5)}
+.fd-ch-qc-input{height:30px;width:80px;background:rgba(143,191,107,0.06);border:1px solid rgba(143,191,107,0.18);border-radius:5px;color:#8FBF6B;font-family:'Roboto Slab',serif;font-size:16px;font-weight:700;text-align:right;padding:0 8px;outline:none;-webkit-appearance:none;appearance:none;-moz-appearance:textfield}
+.fd-ch-qc-input::-webkit-outer-spin-button,.fd-ch-qc-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fd-ch-qc-input::placeholder{color:rgba(143,191,107,0.35)}
+.fd-ch-qc-sub{font-size:8px;color:rgba(255,255,255,0.18)}
+.auto-filled{color:rgba(143,191,107,0.6)!important;font-style:italic}
+/* Call Performance */
+.fd-call-perf{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:28px;box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.fd-call-perf-title{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,0.2);margin-bottom:16px}
+.fd-cp-cols{display:grid;grid-template-columns:100px 1fr 1px 1fr;gap:0;align-items:center;margin-bottom:0;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);padding:10px 0;border-radius:6px 6px 0 0}
+.fd-cp-col-header{font-size:9px;text-transform:uppercase;letter-spacing:.1em;text-align:center;padding-bottom:0}
+.fd-cp-col-header.organic{color:rgba(255,255,255,0.3)}
+.fd-cp-col-header.paid{color:rgba(143,191,107,0.5)}
+.fd-cp-col-divider{width:1px;align-self:stretch;background:rgba(255,255,255,0.04)}
+.fd-cp-ch-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.3);display:flex;align-items:center}
+.fd-cp-section{display:grid;grid-template-columns:100px 1fr 1px 1fr;gap:0;align-items:center;padding:12px 0;border-top:1px solid rgba(255,255,255,0.04)}
+.fd-cp-section .fd-ch-field input{width:100%;height:30px}
+.fd-cp-sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px}
+.fd-cp-vdiv{width:1px;align-self:stretch;background:rgba(255,255,255,0.04)}
+
+/* Source breakdown — stacked card layout */
+.fd-src-wrap{margin-bottom:28px}
+.fd-src-colhdr{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;padding:0 18px 10px}
+.fd-src-colhdr span{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.2)}
+.fd-src-colhdr span:not(:first-child){text-align:right}
+.fd-src-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.15s}
+.fd-src-card:hover{border-color:rgba(255,255,255,0.1)}
+.fd-src-card-hdr{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;padding:10px 18px;background:rgba(255,255,255,0.03)}
+.fd-src-card-hdr .fd-src-ch-name{font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center}
+.fd-src-card-hdr .fd-src-val{font-family:'Roboto Slab',serif;font-size:13px;font-weight:400;color:#fff;text-align:right}
+.fd-src-sub{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;padding:9px 18px 9px 32px;border-top:1px solid rgba(255,255,255,0.03)}
+.fd-src-sub .fd-src-sub-label{font-size:11px;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:7px}
+.fd-src-sub .fd-src-sub-label::before{content:'';width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.fd-src-sub.organic .fd-src-sub-label::before{background:rgba(255,255,255,0.2)}
+.fd-src-sub.paid .fd-src-sub-label::before{background:rgba(143,191,107,0.5)}
+.fd-src-sub .fd-src-val{font-family:'Roboto Slab',serif;font-size:12px;font-weight:400;color:rgba(255,255,255,0.55);text-align:right}
+.fd-src-sub .fd-src-pct{font-size:11px;color:rgba(255,255,255,0.3);text-align:right}
+.fd-src-total{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px}
+.fd-src-total .fd-src-total-label{font-size:12px;font-weight:600;color:#fff}
+.fd-src-total .fd-src-val{font-family:'Roboto Slab',serif;font-size:13px;font-weight:400;color:#fff;text-align:right}
+.fd-src-total .fd-src-val.cash{color:#8FBF6B;font-weight:700}
+/* Summary chips */
+.fd-src-chips{display:flex;gap:10px;margin-bottom:12px}
+.fd-src-chip{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 18px;display:flex;flex-direction:column;gap:4px;transition:border-color 0.15s}
+.fd-src-chip:hover{border-color:rgba(255,255,255,0.12)}
+.fd-src-chip-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.25)}
+.fd-src-chip-val{font-family:'Roboto Slab',serif;font-size:16px;font-weight:700;color:#fff}
+.fd-src-chip-val.green{color:#8FBF6B}
+/* QCs Target bar */
+.fd-qc-target{background:rgba(143,191,107,0.04);border:1px solid rgba(143,191,107,0.15);border-radius:10px;padding:16px 22px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(143,191,107,0.03)}
+.fd-qc-target-left{display:flex;flex-direction:column;gap:3px}
+.fd-qc-target-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(143,191,107,0.6)}
+.fd-qc-target-sub{font-size:10px;color:rgba(255,255,255,0.2)}
+.fd-qc-target-figures{display:flex;align-items:center;gap:20px}
+.fd-qc-target-fig{display:flex;flex-direction:column;align-items:center;gap:3px}
+.fd-qc-target-fig-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.3);white-space:nowrap}
+.fd-qc-target-fig-val{font-family:'Roboto Slab',serif;font-size:24px;font-weight:700;color:#fff}
+.fd-qc-target-fig-val.green{color:#8FBF6B}
+.fd-qc-target-fig-gap{font-size:10px;color:rgba(143,191,107,0.5)}
+.fd-qc-target-divider{width:1px;align-self:stretch;background:rgba(255,255,255,0.06);flex-shrink:0}
+/* Action block */
+.fd-actions{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:28px;box-shadow:0 2px 12px rgba(0,0,0,0.12)}
+.fd-actions-title{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,0.2);margin-bottom:14px}
+.fd-action-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.fd-action-item:last-child{border-bottom:none}
+.fd-action-dot{width:22px;height:22px;border-radius:5px;background:rgba(143,191,107,0.1);border:1px solid rgba(143,191,107,0.2);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center}
+.fd-action-dot::after{content:'';width:7px;height:7px;border-radius:50%;background:#8FBF6B}
+.fd-action-text{font-size:13px;font-weight:500;color:#fff;line-height:1.5}
+.fd-action-text.muted{color:rgba(255,255,255,0.25)}
+.fd-action-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;line-height:1.5}
+
+/* FD-scoped overrides for shared styles */
+#page-funnel .nc-callout{padding:22px 26px}
+#page-funnel .nc-callout-number{font-size:42px}
+#page-funnel .nc-callout-text{font-size:13px}
+#page-funnel .nc-callout-divider{min-height:52px}
+#page-funnel .comp-header{grid-template-columns:1fr 160px 160px}
+#page-funnel .comp-row{grid-template-columns:1fr 160px 160px}
+#page-funnel .comp-row.cash-row .comp-cur,#page-funnel .comp-row.cash-row .comp-opt{font-size:20px}
+#page-funnel .comp-row.cash-row{padding:18px 24px}
+#page-funnel .comp-lift-sub{font-size:9px;color:rgba(143,191,107,0.5);margin-top:2px}
+#page-funnel .daily-val{font-size:28px}
+#page-funnel .daily-card{padding:20px 18px}
+#page-funnel .daily-card.cash-card{border-color:rgba(143,191,107,0.18);background:rgba(143,191,107,0.04)}
+#page-funnel .daily-lbl{font-size:9px;letter-spacing:0.14em}
+#page-funnel .section-title{font-size:9px!important;font-family:'Roboto',sans-serif!important;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:12px!important}
+#page-funnel .card{margin-bottom:28px!important}
+
+/* ─── UTILS ─── */
+hr.sep{border:none;border-top:1px solid rgba(255,255,255,0.07);margin:32px 0}
+.hidden{display:none}
+.full-width{grid-column:1/-1}
+.notice-box{background:rgba(143,191,107,0.07);border:1px solid rgba(143,191,107,0.25);border-radius:8px;padding:16px 20px;margin-bottom:24px;font-size:13px;color:#8FBF6B;font-weight:500;line-height:1.5;box-shadow:0 2px 8px rgba(143,191,107,0.04)}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash-screen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0e1012;z-index:9999;display:flex;align-items:center;justify-content:center;">
+  <div style="display:inline-flex;flex-direction:column;align-items:stretch;">
+    <div id="s-line-top" style="height:1px;background:#8FBF6B;transform:scaleX(0);transform-origin:left;"></div>
+    <div id="s-text" style="font-family:'Roboto',sans-serif;font-weight:400;font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.3em;text-transform:uppercase;padding:14px 0;opacity:0;white-space:nowrap;">CARBON CONSULTING</div>
+    <div id="s-line-bot" style="height:1px;background:#8FBF6B;transform:scaleX(0);transform-origin:left;"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <canvas id="homeCanvas" class="home-canvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
+
+  <header id="app-header" style="display:none">
+    <span class="hdr-name">Proxima</span>
+  </header>
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div class="home-corner tl"></div>
+    <div class="home-corner tr"></div>
+    <div class="home-corner bl"></div>
+    <div class="home-corner br"></div>
+
+    <main class="home-main">
+      <h1 class="home-title">Proxima</h1>
+      <button class="home-open-btn" id="homeOpenBtn">Open Live Calculator →</button>
+    </main>
+
+    <div class="home-status" id="homeStatus">
+      <p><span class="home-dot"></span>Ready</p>
+      <p>Carbon Consulting — Internal</p>
+    </div>
+  </div>
+
+  <!-- PAGE: LIVE CALCULATOR -->
+  <div id="page-funnel" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="goHome()">Back</button>
+        <h1 class="page-title">Live Calculator</h1>
+      </div>
+
+      <!-- Pricing Strip -->
+      <div class="fd-pricing-strip">
+        <div class="fd-ps-field"><label>PIF Price ($)</label><input type="number" id="fd-pif-price" placeholder="5000" oninput="recalcFunnel()"></div>
+        <div class="fd-ps-field"><label>% Paying PIF</label><input type="number" id="fd-pif-pct" placeholder="50" min="0" max="100" oninput="recalcFunnel()"></div>
+        <div class="fd-ps-field"><label>Plan Payments (#)</label><input type="number" id="fd-plan-n" placeholder="3" oninput="recalcFunnel()"></div>
+        <div class="fd-ps-field"><label>Amount / Payment ($)</label><input type="number" id="fd-plan-amt" placeholder="1000" oninput="recalcFunnel()"></div>
+        <div class="fd-ps-field"><label>Cash Goal ($/mo)</label><input type="number" id="fd-goal" placeholder="50000" oninput="recalcFunnel()"></div>
+        <div class="fd-ps-divider"></div>
+        <div class="fd-ps-aov">
+          <span class="fd-ps-aov-label">Eff. AOV</span>
+          <span class="fd-ps-aov-val" id="fd-aov-val">—</span>
+        </div>
+      </div>
+
+      <!-- Calls Needed Strip -->
+      <div class="fd-calls-needed" id="fd-calls-needed" style="display:none">
+        <div class="fd-cn-left">
+          <div class="fd-cn-label">CALLS NEEDED TO HIT GOAL</div>
+          <div class="fd-cn-sub">Assuming 100% show &amp; close rate</div>
+        </div>
+        <div class="fd-cn-right">
+          <div class="fd-cn-fig">
+            <div class="fd-cn-fig-label">Closes needed / mo</div>
+            <div class="fd-cn-fig-val" id="fd-cn-closes">—</div>
+          </div>
+          <div class="fd-cn-divider"></div>
+          <div class="fd-cn-fig">
+            <div class="fd-cn-fig-label">At your rates / mo</div>
+            <div class="fd-cn-fig-val green" id="fd-cn-actual">—</div>
+            <div class="fd-cn-fig-sub" id="fd-cn-delta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline Bar -->
+      <div class="fd-pipeline" id="fd-pipeline">
+        <div class="fd-pipe-step">
+          <div class="fd-pipe-num">01</div>
+          <div class="fd-pipe-name">Reach / Spend</div>
+          <div class="fd-pipe-val" id="fdp-reach">—</div>
+          <div class="fd-pipe-sub" id="fdp-reach-sub"></div>
+        </div>
+        <div class="fd-pipe-step">
+          <div class="fd-pipe-num">02</div>
+          <div class="fd-pipe-name">QCs Booked</div>
+          <div class="fd-pipe-val" id="fdp-qcb">—</div>
+          <div class="fd-pipe-sub" id="fdp-qcb-sub"></div>
+        </div>
+        <div class="fd-pipe-step">
+          <div class="fd-pipe-num">03</div>
+          <div class="fd-pipe-name">QCs Taken</div>
+          <div class="fd-pipe-val" id="fdp-qct">—</div>
+          <div class="fd-pipe-sub" id="fdp-qct-sub"></div>
+        </div>
+        <div class="fd-pipe-step">
+          <div class="fd-pipe-num">04</div>
+          <div class="fd-pipe-name">Closes</div>
+          <div class="fd-pipe-val" id="fdp-closes">—</div>
+          <div class="fd-pipe-sub" id="fdp-closes-sub"></div>
+        </div>
+        <div class="fd-pipe-step accent">
+          <div class="fd-pipe-num">05</div>
+          <div class="fd-pipe-name">Cash Collected</div>
+          <div class="fd-pipe-val green" id="fdp-cash">—</div>
+          <div class="fd-pipe-sub" id="fdp-cash-sub"></div>
+        </div>
+      </div>
+
+      <!-- Channels Block -->
+      <div class="fd-channels">
+        <!-- VSL Funnel -->
+        <div class="fd-ch-row two-line active" id="fd-row-vsl" onclick="toggleFdChannel(event,'vsl')">
+          <div class="fd-ch-toggle">
+            <div class="fd-ch-dot"></div>
+            <div><div class="fd-ch-name">VSL Funnel</div></div>
+          </div>
+          <div class="fd-ch-inputs fd-ch-inputs-2row" onclick="event.stopPropagation()">
+            <div class="fd-ch-field"><label>Impressions (/ mo)</label><input type="number" id="fd-vsl-impressions" placeholder="—" oninput="recalcFunnelFrom('vsl','volume')"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>% from Paid</label><input type="number" id="fd-vsl-paid-pct" placeholder="—" step="1" min="0" max="100" oninput="recalcFunnel()"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>Impr → Call (%)</label><input type="number" id="fd-vsl-conv" value="0.15" step="0.01" oninput="recalcFunnel()"><div class="hint">avg 0.15% · <strong>0.45%</strong></div></div>
+            <div class="fd-ch-field" id="fd-vsl-spend-wrap"><label>Ad Spend $/mo</label><input type="number" id="fd-vsl-ad-spend" placeholder="—" style="width:90px" oninput="recalcFunnel()"></div>
+          </div>
+          <div class="fd-ch-qc" onclick="event.stopPropagation()">
+            <div class="fd-ch-qc-label">QCS BOOKED</div>
+            <input type="number" class="fd-ch-qc-input" id="fd-vsl-qc" placeholder="—" oninput="recalcFunnelFrom('vsl','qc')">
+            <div class="fd-ch-qc-sub">per month</div>
+          </div>
+        </div>
+
+        <!-- Profile Funnel -->
+        <div class="fd-ch-row two-line active" id="fd-row-profile" onclick="toggleFdChannel(event,'profile')">
+          <div class="fd-ch-toggle">
+            <div class="fd-ch-dot"></div>
+            <div><div class="fd-ch-name">Profile Funnel</div></div>
+          </div>
+          <div class="fd-ch-inputs fd-ch-inputs-2row" onclick="event.stopPropagation()">
+            <div class="fd-ch-field"><label>Monthly Reach (/ mo)</label><input type="number" id="fd-pr-reach" placeholder="—" oninput="recalcFunnelFrom('profile','volume')"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>% from Paid</label><input type="number" id="fd-pr-paid-pct" placeholder="—" step="1" min="0" max="100" oninput="recalcFunnel()"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>Reach → Call (%)</label><input type="number" id="fd-pr-conv" value="0.015" step="0.001" oninput="recalcFunnel()"><div class="hint">avg 0.015% · <strong>0.06%</strong></div></div>
+            <div class="fd-ch-field" id="fd-pr-spend-wrap"><label>Ad Spend $/mo</label><input type="number" id="fd-pr-ad-spend" placeholder="—" style="width:90px" oninput="recalcFunnel()"></div>
+          </div>
+          <div class="fd-ch-qc" onclick="event.stopPropagation()">
+            <div class="fd-ch-qc-label">QCS BOOKED</div>
+            <input type="number" class="fd-ch-qc-input" id="fd-pr-qc" placeholder="—" oninput="recalcFunnelFrom('profile','qc')">
+            <div class="fd-ch-qc-sub">per month</div>
+          </div>
+        </div>
+
+        <!-- Webinar Funnel -->
+        <div class="fd-ch-row two-line active" id="fd-row-webinar" onclick="toggleFdChannel(event,'webinar')">
+          <div class="fd-ch-toggle">
+            <div class="fd-ch-dot"></div>
+            <div><div class="fd-ch-name">Webinar Funnel</div></div>
+          </div>
+          <div class="fd-ch-inputs fd-ch-inputs-2row" onclick="event.stopPropagation()">
+            <div class="fd-ch-field"><label>Registrations (/ mo)</label><input type="number" id="fd-web-registrations" placeholder="—" oninput="recalcFunnelFrom('webinar','volume')"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>% from Paid</label><input type="number" id="fd-web-paid-pct" placeholder="—" step="1" min="0" max="100" style="width:70px" oninput="recalcFunnel()"></div>
+            <div class="fd-ch-vdiv"></div>
+            <div class="fd-ch-field"><label>Reg → Call (%)</label><input type="number" id="fd-web-conv" value="1.2" step="0.1" oninput="recalcFunnel()"><div class="hint">avg 1.2% · <strong>4.0%</strong></div></div>
+            <div class="fd-ch-field" id="fd-web-spend-wrap"><label>Ad Spend $/mo</label><input type="number" id="fd-web-ad-spend" placeholder="—" style="width:90px" oninput="recalcFunnel()"></div>
+          </div>
+          <div class="fd-ch-qc" onclick="event.stopPropagation()">
+            <div class="fd-ch-qc-label">QCS BOOKED</div>
+            <input type="number" class="fd-ch-qc-input" id="fd-web-qc" placeholder="—" oninput="recalcFunnelFrom('webinar','qc')">
+            <div class="fd-ch-qc-sub">per month</div>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- QCs Booked Target -->
+      <div class="fd-qc-target" id="fd-qc-target" style="display:none">
+        <div class="fd-qc-target-left">
+          <div class="fd-qc-target-label">QCS BOOKED NEEDED TO HIT GOAL</div>
+          <div class="fd-qc-target-sub">Per month, based on your show rate and close rate</div>
+        </div>
+        <div class="fd-qc-target-figures">
+          <div class="fd-qc-target-fig">
+            <div class="fd-qc-target-fig-label">At 100% show &amp; close / mo</div>
+            <div class="fd-qc-target-fig-val" id="fd-tgt-floor">—</div>
+          </div>
+          <div class="fd-qc-target-divider"></div>
+          <div class="fd-qc-target-fig">
+            <div class="fd-qc-target-fig-label">At your rates / mo</div>
+            <div class="fd-qc-target-fig-val green" id="fd-tgt-real">—</div>
+            <div class="fd-qc-target-fig-gap" id="fd-tgt-gap"></div>
+          </div>
+          <div class="fd-qc-target-divider"></div>
+          <div class="fd-qc-target-fig">
+            <div class="fd-qc-target-fig-label">Currently booked / mo</div>
+            <div class="fd-qc-target-fig-val" id="fd-tgt-current">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Call Performance -->
+      <div class="fd-call-perf">
+        <div class="fd-call-perf-title">CALL PERFORMANCE</div>
+        <!-- Column headers -->
+        <div class="fd-cp-cols">
+          <div></div>
+          <div class="fd-cp-col-header organic">ORGANIC</div>
+          <div class="fd-cp-col-divider"></div>
+          <div class="fd-cp-col-header paid">PAID</div>
+        </div>
+        <!-- VSL -->
+        <div class="fd-cp-section" id="fd-cp-vsl">
+          <div class="fd-cp-ch-label">VSL FUNNEL</div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-vsl-org-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>70</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-vsl-org-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>20</strong></div></div>
+          </div>
+          <div class="fd-cp-vdiv"></div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-vsl-paid-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>55</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-vsl-paid-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>12</strong></div></div>
+          </div>
+        </div>
+        <!-- Profile -->
+        <div class="fd-cp-section" id="fd-cp-profile">
+          <div class="fd-cp-ch-label">PROFILE FUNNEL</div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-pr-org-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>70</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-pr-org-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>20</strong></div></div>
+          </div>
+          <div class="fd-cp-vdiv"></div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-pr-paid-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>55</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-pr-paid-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>10</strong></div></div>
+          </div>
+        </div>
+        <!-- Webinar Funnel -->
+        <div class="fd-cp-section" id="fd-cp-webinar">
+          <div class="fd-cp-ch-label">WEBINAR FUNNEL</div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-web-org-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>70</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-web-org-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>20</strong></div></div>
+          </div>
+          <div class="fd-cp-vdiv"></div>
+          <div class="fd-cp-sub-grid">
+            <div class="fd-ch-field"><label>Show Rate %</label><input type="number" id="fd-web-paid-show" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>55</strong></div></div>
+            <div class="fd-ch-field"><label>Close Rate %</label><input type="number" id="fd-web-paid-close" placeholder="—" step="0.1" oninput="recalcFunnel()"><div class="hint">benchmark <strong>10</strong></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="fd-results"></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+// ─── BENCHMARKS ───────────────────────────────────────────────
+const B = {
+  // Organic show/close
+  ORG_SHOW: 0.70, ORG_SHOW_STRONG: 0.80,
+  ORG_CLOSE_WARM: 0.20, ORG_CLOSE_WARM_STRONG: 0.30,
+  ORG_CLOSE_COLD: 0.12, ORG_CLOSE_COLD_STRONG: 0.20,
+  // Paid show/close (per channel)
+  PAID_SHOW: 0.55, PAID_SHOW_STRONG: 0.65,
+  PAID_CLOSE_VSL: 0.12, PAID_CLOSE_VSL_STRONG: 0.18,
+  PAID_CLOSE_PR: 0.10, PAID_CLOSE_PR_STRONG: 0.15,
+  PAID_CLOSE_WEB: 0.10, PAID_CLOSE_WEB_STRONG: 0.15,
+  // Composite funnel rates
+  VSL_IMPR_TO_CALL: 0.0015, VSL_IMPR_TO_CALL_STRONG: 0.0045,
+  PR_REACH_TO_CALL: 0.00015, PR_REACH_TO_CALL_STRONG: 0.0006,
+  WEB_REG_TO_CALL: 0.012, WEB_REG_TO_CALL_STRONG: 0.04,
+  // Paid diagnostics
+  CTR_AVG: 1.25, CTR_STRONG: 2,
+  CVR_AVG: 25,   CVR_STRONG: 42.5,
+  CPL_AVG: 65,   CPL_STRONG: 28,
+  LEAD_CONV_AVG: 12, LEAD_CONV_STRONG: 22,
+  COST_QC_AVG: 541,  COST_QC_STRONG: 127,
+  COST_CLIENT_AVG: 1400, COST_CLIENT_STRONG: 600,
+  ROAS_AVG: 2.0, ROAS_STRONG: 4.0
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function n(id){ return parseFloat(document.getElementById(id)?.value) || 0; }
+function pct(id){ return n(id) / 100; }
+function fmt(v, decimals=0){ return v.toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals}); }
+function fmtD(v){ return v < 100 ? fmt(v,1) : fmt(v,0); }
+function dollar(v){ return '$' + fmt(Math.round(v)); }
+function pc(v){ return fmt(v*100,1) + '%'; }
+
+function getPricing(pfx) {
+  const pifPrice  = n(pfx+'-pif-price');
+  const pifPct    = Math.min(100, Math.max(0, n(pfx+'-pif-pct') || 50)) / 100;
+  const planPct   = 1 - pifPct;
+  const planN     = n(pfx+'-plan-n');
+  const planAmt   = n(pfx+'-plan-amt');
+  const planTotal = planN * planAmt;
+  const aov       = pifPct * pifPrice + planPct * planTotal;
+  const cashAov   = pifPct * pifPrice + planPct * planAmt; // first payment only
+  return { pifPrice, pifPct, planPct, planN, planAmt, planTotal, aov, cashAov };
+}
+
+function renderAOV(pfx) {
+  const pr = getPricing(pfx);
+  const aovEl = document.getElementById(pfx+'-aov-val');
+  const eqEl  = document.getElementById(pfx+'-plan-eq');
+  if (!aovEl) return pr;
+  aovEl.textContent = pr.cashAov > 0 ? dollar(pr.cashAov) : '—';
+  if (eqEl && pr.planN > 0 && pr.planAmt > 0) {
+    eqEl.textContent = `${pr.planN} × ${dollar(pr.planAmt)} = ${dollar(pr.planTotal)} plan total · ${fmt(pr.pifPct*100,0)}% PIF / ${fmt(pr.planPct*100,0)}% Plan · AOV = cash per close`;
+  } else if (eqEl) { eqEl.textContent = ''; }
+  return pr;
+}
+
+
+function renderCalcCVO(cur, opt, curVol, optVol) {
+  const rows = [
+    { label: 'QCs Booked',        curV: fmtD(cur.qcsB),      optV: fmtD(opt.qcsB),      changed: opt.qcsB > cur.qcsB },
+    { label: 'Show Rate',         curV: pc(cur.showR),        optV: pc(opt.showR),        changed: opt.showR > cur.showR + 0.001, from: pc(cur.showR) },
+    { label: 'QCs Taken',         curV: fmtD(cur.qcsT),      optV: fmtD(opt.qcsT),       changed: opt.qcsT > cur.qcsT },
+    { label: 'Close Rate',        curV: pc(cur.closeR),       optV: pc(opt.closeR),       changed: opt.closeR > cur.closeR + 0.001, from: pc(cur.closeR) },
+    { label: 'Closes',            curV: fmtD(cur.closes),     optV: fmtD(opt.closes),     changed: opt.closes > cur.closes },
+    { label: 'Effective AOV',     curV: dollar(cur.cashAov),  optV: dollar(opt.cashAov),  changed: false },
+    { label: 'Cash Collected',    curV: dollar(cur.cash),     optV: dollar(opt.cash),     changed: opt.cash > cur.cash, cash: true },
+  ];
+  if (curVol || optVol) {
+    rows.push({ label: 'Implied Volume', curV: curVol || '—', optV: optVol || '—', changed: !!(optVol && optVol !== curVol) });
+  }
+
+  let rowsHtml = '';
+  rows.forEach(r => {
+    const cashClass = r.cash ? ' cash-row' : '';
+    const liftHtml = r.changed && r.from ? `<span class="comp-lift-sub">↑ from ${r.from}</span>` : '';
+    const optClass = r.changed ? ' changed' : '';
+    rowsHtml += `<div class="comp-row${cashClass}">
+      <span class="comp-label">${r.label}</span>
+      <span class="comp-cur">${r.curV}</span>
+      <span class="comp-opt${optClass}">${r.optV}${liftHtml}</span>
+    </div>`;
+  });
+
+  return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:48px">
+    <div class="comp-header">
+      <span></span>
+      <span class="comp-hdr-cur">Current</span>
+      <span class="comp-hdr-opt">Optimised</span>
+    </div>
+    ${rowsHtml}
+  </div>`;
+}
+
+
+// ─── LIVE CALCULATOR PAGE ────────────────────────────────────
+const fdChannels = { vsl: true, profile: true, webinar: true };
+const fdLastEdited = { vsl: 'volume', profile: 'volume', webinar: 'volume' };
+
+function flashAutofill(el) {
+  el.classList.add('auto-filled');
+  setTimeout(() => el.classList.remove('auto-filled'), 400);
+}
+
+function recalcFunnelFrom(channel, end) {
+  fdLastEdited[channel] = end;
+  recalcFunnel();
+}
+
+function toggleFdChannel(e, ch) {
+  if (e.target.closest('.fd-ch-inputs') || e.target.closest('.fd-ch-qc')) return;
+  fdChannels[ch] = !fdChannels[ch];
+  document.getElementById('fd-row-' + ch).classList.toggle('active', fdChannels[ch]);
+  const cpEl = document.getElementById('fd-cp-' + ch);
+  if (cpEl) cpEl.style.display = fdChannels[ch] ? '' : 'none';
+  recalcFunnel();
+}
+
+function rawQC(v) { return v > 0 ? (v < 100 ? Math.round(v * 10) / 10 : Math.round(v)) : ''; }
+
+function recalcFunnel() {
+  const pr = getPricing('fd');
+  const goal = n('fd-goal');
+  const el = document.getElementById('fd-results');
+  const hasPricing = pr.cashAov > 0;
+
+  // AOV display
+  const aovEl = document.getElementById('fd-aov-val');
+  if (aovEl) aovEl.textContent = hasPricing ? dollar(pr.cashAov) : '—';
+
+  // ── Per-channel blended rates ──
+  function blendRate(orgId, paidId, paidPctId) {
+    const orgR  = n(orgId) / 100;
+    const paidR = n(paidId) / 100;
+    const pp    = Math.min(100, Math.max(0, n(paidPctId))) / 100;
+    if (pp > 0 && paidR > 0) return (1 - pp) * orgR + pp * paidR;
+    return orgR;
+  }
+
+  // VSL rates
+  const vslShow  = blendRate('fd-vsl-org-show', 'fd-vsl-paid-show', 'fd-vsl-paid-pct');
+  const vslClose = blendRate('fd-vsl-org-close', 'fd-vsl-paid-close', 'fd-vsl-paid-pct');
+  const vslHasRates = n('fd-vsl-org-show') > 0 && n('fd-vsl-org-close') > 0;
+
+  // Profile rates
+  const prShow  = blendRate('fd-pr-org-show', 'fd-pr-paid-show', 'fd-pr-paid-pct');
+  const prClose = blendRate('fd-pr-org-close', 'fd-pr-paid-close', 'fd-pr-paid-pct');
+  const prHasRates = n('fd-pr-org-show') > 0 && n('fd-pr-org-close') > 0;
+
+  // Webinar Funnel rates (blended organic/paid)
+  const webShow  = blendRate('fd-web-org-show', 'fd-web-paid-show', 'fd-web-paid-pct');
+  const webClose = blendRate('fd-web-org-close', 'fd-web-paid-close', 'fd-web-paid-pct');
+  const webHasRates = n('fd-web-org-show') > 0 && n('fd-web-org-close') > 0;
+
+  // Overall hasRates: at least one active channel has rates
+  const hasRates = (fdChannels.vsl && vslHasRates) || (fdChannels.profile && prHasRates) || (fdChannels.webinar && webHasRates);
+
+  // ── Toggle Ad Spend field visibility based on % from Paid ──
+  const vslSpendWrap = document.getElementById('fd-vsl-spend-wrap');
+  const prSpendWrap  = document.getElementById('fd-pr-spend-wrap');
+  const webSpendWrap = document.getElementById('fd-web-spend-wrap');
+  if (vslSpendWrap) vslSpendWrap.classList.toggle('fd-spend-show', n('fd-vsl-paid-pct') > 0);
+  if (prSpendWrap)  prSpendWrap.classList.toggle('fd-spend-show', n('fd-pr-paid-pct') > 0);
+  if (webSpendWrap) webSpendWrap.classList.toggle('fd-spend-show', n('fd-web-paid-pct') > 0);
+
+  // ── Conversion chains (single composite rate per channel) ──
+  const vslConv = pct('fd-vsl-conv');
+  const prConv  = pct('fd-pr-conv');
+  const webConv = pct('fd-web-conv');
+
+  // ── VSL (bidirectional) ──
+  let vslQCB = 0, vslVol = 0;
+  if (fdChannels.vsl) {
+    const qcEl  = document.getElementById('fd-vsl-qc');
+    const volEl = document.getElementById('fd-vsl-impressions');
+    if (fdLastEdited.vsl === 'qc') {
+      vslQCB = parseFloat(qcEl?.value) || 0;
+      if (vslConv > 0 && vslQCB > 0) {
+        vslVol = vslQCB / vslConv;
+        if (volEl) { volEl.value = Math.round(vslVol); flashAutofill(volEl); }
+      } else if (volEl) { volEl.value = ''; }
+    } else {
+      vslVol = n('fd-vsl-impressions');
+      vslQCB = vslVol * vslConv;
+      if (qcEl) { qcEl.value = rawQC(vslQCB); if (vslQCB > 0) flashAutofill(qcEl); }
+    }
+  }
+
+  // ── Profile (bidirectional) ──
+  let prQCB = 0, prVol = 0;
+  if (fdChannels.profile) {
+    const qcEl  = document.getElementById('fd-pr-qc');
+    const volEl = document.getElementById('fd-pr-reach');
+    if (fdLastEdited.profile === 'qc') {
+      prQCB = parseFloat(qcEl?.value) || 0;
+      if (prConv > 0 && prQCB > 0) {
+        prVol = prQCB / prConv;
+        if (volEl) { volEl.value = Math.round(prVol); flashAutofill(volEl); }
+      } else if (volEl) { volEl.value = ''; }
+    } else {
+      prVol = n('fd-pr-reach');
+      prQCB = prVol * prConv;
+      if (qcEl) { qcEl.value = rawQC(prQCB); if (prQCB > 0) flashAutofill(qcEl); }
+    }
+  }
+
+  // ── Webinar Funnel (bidirectional) ──
+  let webQCB = 0, webVol = 0;
+  if (fdChannels.webinar) {
+    const qcEl  = document.getElementById('fd-web-qc');
+    const volEl = document.getElementById('fd-web-registrations');
+    if (fdLastEdited.webinar === 'qc') {
+      webQCB = parseFloat(qcEl?.value) || 0;
+      if (webConv > 0 && webQCB > 0) {
+        webVol = webQCB / webConv;
+        if (volEl) { volEl.value = Math.round(webVol); flashAutofill(volEl); }
+      } else if (volEl) { volEl.value = ''; }
+    } else {
+      webVol = n('fd-web-registrations');
+      webQCB = webVol * webConv;
+      if (qcEl) { qcEl.value = rawQC(webQCB); if (webQCB > 0) flashAutofill(qcEl); }
+    }
+  }
+
+  const totalQCB = vslQCB + prQCB + webQCB;
+  const totalReachDisplay = vslVol + prVol + webVol;
+
+  // Per-channel blended benchmarks (weighted by % from Paid)
+  const vslPP  = Math.min(100, Math.max(0, n('fd-vsl-paid-pct'))) / 100;
+  const prPP   = Math.min(100, Math.max(0, n('fd-pr-paid-pct'))) / 100;
+  const webPP  = Math.min(100, Math.max(0, n('fd-web-paid-pct'))) / 100;
+
+  const vslShowBench  = (1 - vslPP) * B.ORG_SHOW + vslPP * B.PAID_SHOW;
+  const vslCloseBench = (1 - vslPP) * B.ORG_CLOSE_WARM + vslPP * B.PAID_CLOSE_VSL;
+  const prShowBench   = (1 - prPP) * B.ORG_SHOW + prPP * B.PAID_SHOW;
+  const prCloseBench  = (1 - prPP) * B.ORG_CLOSE_WARM + prPP * B.PAID_CLOSE_PR;
+  const webShowBench  = (1 - webPP) * B.ORG_SHOW + webPP * B.PAID_SHOW;
+  const webCloseBench = (1 - webPP) * B.ORG_CLOSE_WARM + webPP * B.PAID_CLOSE_WEB;
+
+  // QCB-weighted overall benchmarks across active channels
+  let bWShow = 0, bWClose = 0, bWTotal = 0;
+  if (fdChannels.vsl && vslQCB > 0)     { bWShow += vslQCB * vslShowBench; bWClose += vslQCB * vslCloseBench; bWTotal += vslQCB; }
+  if (fdChannels.profile && prQCB > 0)  { bWShow += prQCB * prShowBench;   bWClose += prQCB * prCloseBench;   bWTotal += prQCB; }
+  if (fdChannels.webinar && webQCB > 0) { bWShow += webQCB * webShowBench;  bWClose += webQCB * webCloseBench;  bWTotal += webQCB; }
+  const showBench  = bWTotal > 0 ? bWShow / bWTotal : B.ORG_SHOW;
+  const closeBench = bWTotal > 0 ? bWClose / bWTotal : B.ORG_CLOSE_WARM;
+
+  // ── Pipeline bar ──
+  const reachParts = [];
+  if (fdChannels.vsl && vslVol > 0)    reachParts.push('VSL ' + fmt(vslVol));
+  if (fdChannels.profile && prVol > 0) reachParts.push('Profile ' + fmt(prVol));
+  if (fdChannels.webinar && webVol > 0) reachParts.push('Webinar Funnel ' + fmt(webVol));
+  document.getElementById('fdp-reach').textContent = totalReachDisplay > 0 ? fmt(totalReachDisplay) + ' / mo' : '—';
+  document.getElementById('fdp-reach-sub').textContent = reachParts.join(', ');
+
+  document.getElementById('fdp-qcb').textContent = totalQCB > 0 ? fmtD(totalQCB) + ' / mo' : '—';
+  if (totalReachDisplay > 0 && totalQCB > 0) {
+    const convR = totalQCB / totalReachDisplay * 100;
+    document.getElementById('fdp-qcb-sub').textContent = (convR < 1 ? convR.toFixed(3) : fmt(convR, 1)) + '% conv';
+  } else { document.getElementById('fdp-qcb-sub').textContent = ''; }
+
+  // ── Per-channel closes using organic/paid split (FIX 4) ──
+  const vslOrgRate  = n('fd-vsl-org-show') / 100, vslOrgCRate = n('fd-vsl-org-close') / 100;
+  const vslPdRate   = n('fd-vsl-paid-show') / 100, vslPdCRate  = n('fd-vsl-paid-close') / 100;
+  const prOrgRate   = n('fd-pr-org-show') / 100, prOrgCRate  = n('fd-pr-org-close') / 100;
+  const prPdRate    = n('fd-pr-paid-show') / 100, prPdCRate   = n('fd-pr-paid-close') / 100;
+  const webOrgRate  = n('fd-web-org-show') / 100, webOrgCRate = n('fd-web-org-close') / 100;
+  const webPdRate   = n('fd-web-paid-show') / 100, webPdCRate  = n('fd-web-paid-close') / 100;
+
+  const vslPPf = Math.min(100, Math.max(0, n('fd-vsl-paid-pct'))) / 100;
+  const prPPf  = Math.min(100, Math.max(0, n('fd-pr-paid-pct'))) / 100;
+  const webPPf = Math.min(100, Math.max(0, n('fd-web-paid-pct'))) / 100;
+
+  const vslOrgQCBf = vslQCB * (1 - vslPPf), vslPdQCBf = vslQCB * vslPPf;
+  const prOrgQCBf  = prQCB * (1 - prPPf),   prPdQCBf  = prQCB * prPPf;
+  const webOrgQCBf = webQCB * (1 - webPPf),  webPdQCBf = webQCB * webPPf;
+
+  const vslOrgCl = vslHasRates ? vslOrgQCBf * vslOrgRate * vslOrgCRate : 0;
+  const vslPdCl  = (vslPdRate > 0 && vslPdCRate > 0) ? vslPdQCBf * vslPdRate * vslPdCRate : 0;
+  const vslCloses = vslOrgCl + vslPdCl;
+
+  const prOrgCl = prHasRates ? prOrgQCBf * prOrgRate * prOrgCRate : 0;
+  const prPdCl  = (prPdRate > 0 && prPdCRate > 0) ? prPdQCBf * prPdRate * prPdCRate : 0;
+  const prCloses = prOrgCl + prPdCl;
+
+  const webOrgCl = webHasRates ? webOrgQCBf * webOrgRate * webOrgCRate : 0;
+  const webPdCl  = (webPdRate > 0 && webPdCRate > 0) ? webPdQCBf * webPdRate * webPdCRate : 0;
+  const webCloses = webOrgCl + webPdCl;
+
+  const totalCloses = vslCloses + prCloses + webCloses;
+  const totalCash   = hasPricing && totalCloses > 0 ? totalCloses * pr.cashAov : 0;
+  const totalQcsT   = (vslHasRates ? vslQCB * vslShow : 0) + (prHasRates ? prQCB * prShow : 0) + (webHasRates ? webQCB * webShow : 0);
+
+  // Weighted-average blended show/close across active channels (for CVO table display)
+  let wShow = 0, wClose = 0, wTotal = 0;
+  if (fdChannels.vsl && vslQCB > 0 && vslHasRates)    { wShow += vslQCB * vslShow; wClose += vslQCB * vslClose; wTotal += vslQCB; }
+  if (fdChannels.profile && prQCB > 0 && prHasRates)   { wShow += prQCB * prShow;   wClose += prQCB * prClose;   wTotal += prQCB; }
+  if (fdChannels.webinar && webQCB > 0 && webHasRates) { wShow += webQCB * webShow;  wClose += webQCB * webClose; wTotal += webQCB; }
+  const avgShow  = wTotal > 0 ? wShow / wTotal : 0;
+  const avgClose = wTotal > 0 ? wClose / wTotal : 0;
+
+  document.getElementById('fdp-qct').textContent     = totalQcsT > 0 ? fmtD(totalQcsT) + ' / mo' : '—';
+  document.getElementById('fdp-qct-sub').textContent = hasRates ? fmt(avgShow * 100, 0) + '% avg show' : '';
+  document.getElementById('fdp-closes').textContent     = totalCloses > 0 ? fmtD(totalCloses) + ' / mo' : '—';
+  document.getElementById('fdp-closes-sub').textContent = hasRates ? fmt(avgClose * 100, 0) + '% avg close' : '';
+  document.getElementById('fdp-cash').textContent     = totalCash > 0 ? dollar(totalCash) + ' / mo' : '—';
+  document.getElementById('fdp-cash-sub').textContent = goal > 0 ? 'vs ' + dollar(goal) + ' goal' : '';
+
+  // ── Calls Needed strip ──
+  const cnEl = document.getElementById('fd-calls-needed');
+  if (cnEl) {
+    if (goal > 0 && hasPricing) {
+      cnEl.style.display = '';
+      const closesNeeded = Math.ceil(goal / pr.cashAov);
+      document.getElementById('fd-cn-closes').textContent = fmt(closesNeeded);
+      if (avgShow > 0 && avgClose > 0) {
+        const actual = Math.ceil(closesNeeded / avgClose / avgShow);
+        const delta = actual - closesNeeded;
+        document.getElementById('fd-cn-actual').textContent = fmt(actual);
+        document.getElementById('fd-cn-actual').classList.add('green');
+        document.getElementById('fd-cn-delta').textContent = '+' + fmt(delta) + ' vs 100% scenario';
+      } else {
+        document.getElementById('fd-cn-actual').textContent = '—';
+        document.getElementById('fd-cn-actual').classList.remove('green');
+        document.getElementById('fd-cn-delta').textContent = '';
+      }
+    } else {
+      cnEl.style.display = 'none';
+    }
+  }
+
+  // ── QCs Target bar (FIX 1: "At your rates" deferred until optimisation) ──
+  const tgtBar = document.getElementById('fd-qc-target');
+  if (tgtBar) {
+    if (goal > 0 && hasPricing) {
+      tgtBar.style.display = '';
+      const floor = Math.ceil(goal / pr.cashAov);
+      document.getElementById('fd-tgt-floor').textContent = fmt(floor);
+      document.getElementById('fd-tgt-current').textContent = totalQCB > 0 ? fmtD(totalQCB) : '—';
+      // "At your rates" will be updated below after per-channel optimisation
+      document.getElementById('fd-tgt-real').textContent = '—';
+      document.getElementById('fd-tgt-gap').textContent = '';
+    } else {
+      tgtBar.style.display = 'none';
+    }
+  }
+
+  if (!totalQCB || !hasPricing) { el.innerHTML = ''; return; }
+
+  // ── Per-channel breakdown with organic/paid split (reuses FIX 4 values) ──
+  const hasSomePaid = vslPPf > 0 || prPPf > 0 || webPPf > 0;
+
+  const vslOrgCash = vslOrgCl * pr.cashAov, vslPdCash = vslPdCl * pr.cashAov;
+  const prOrgCash  = prOrgCl * pr.cashAov,  prPdCash  = prPdCl * pr.cashAov;
+  const webOrgCash = webOrgCl * pr.cashAov,  webPdCash = webPdCl * pr.cashAov;
+
+  const totalOrgCash  = vslOrgCash + prOrgCash + webOrgCash;
+  const totalPaidCash = vslPdCash + prPdCash + webPdCash;
+
+  // Helpers for new card-based source breakdown
+  function srcCardHdr(name, qcb, closes, cash, hasR) {
+    return `<div class="fd-src-card-hdr">
+      <span class="fd-src-ch-name">${name}</span>
+      <span class="fd-src-val">${fmtD(qcb)}</span>
+      <span class="fd-src-val">${hasR ? fmtD(closes) : '—'}</span>
+      <span class="fd-src-val">${hasR ? dollar(cash) : '—'}</span>
+      <span></span>
+    </div>`;
+  }
+  function srcSub(type, qcb, closes, cash) {
+    const hasC = closes > 0;
+    const pctVal = totalCash > 0 && hasC ? (cash / totalCash * 100) : 0;
+    const label = type === 'paid' ? 'Paid' : 'Organic';
+    return `<div class="fd-src-sub ${type}">
+      <span class="fd-src-sub-label">${label}</span>
+      <span class="fd-src-val">${fmtD(qcb)}</span>
+      <span class="fd-src-val">${hasC ? fmtD(closes) : '—'}</span>
+      <span class="fd-src-val">${hasC ? dollar(cash) : '—'}</span>
+      <span class="fd-src-pct">${hasC ? fmt(pctVal,1) + '%' : '—'}</span>
+    </div>`;
+  }
+
+  // ── Section 6: Summary chips + Source Breakdown ──
+  let srcHtml = '';
+  if (hasRates && hasSomePaid) {
+    const paidPctOfTotal = totalCash > 0 ? (totalPaidCash / totalCash * 100) : 0;
+    srcHtml += '<div class="fd-src-chips">';
+    srcHtml += `<div class="fd-src-chip"><div class="fd-src-chip-label">Organic Cash</div><div class="fd-src-chip-val">${dollar(totalOrgCash)}</div></div>`;
+    srcHtml += `<div class="fd-src-chip"><div class="fd-src-chip-label">Paid Cash</div><div class="fd-src-chip-val${totalPaidCash > 0 ? ' green' : ''}">${dollar(totalPaidCash)}</div></div>`;
+    srcHtml += `<div class="fd-src-chip"><div class="fd-src-chip-label">Paid % of Total</div><div class="fd-src-chip-val${totalPaidCash > 0 ? ' green' : ''}">${fmt(paidPctOfTotal,1)}%</div></div>`;
+    srcHtml += '</div>';
+  }
+
+  // ── Paid Performance block ──
+  const vslAdSpend = n('fd-vsl-ad-spend');
+  const prAdSpend  = n('fd-pr-ad-spend');
+  const webAdSpend = n('fd-web-ad-spend');
+  const ppChannels = [];
+  const cplBench = { vsl: 275, profile: 275, webinar: 200 };
+  const roasBench = 2.5;
+
+  if (fdChannels.vsl && vslPPf > 0 && vslAdSpend > 0 && vslPdQCBf > 0) {
+    const cpl = vslAdSpend / vslPdQCBf;
+    const roas = vslPdCash > 0 ? vslPdCash / vslAdSpend : 0;
+    ppChannels.push({ name: 'VSL Funnel', spend: vslAdSpend, paidQCs: vslPdQCBf, cpl, paidCash: vslPdCash, roas, cplB: cplBench.vsl });
+  }
+  if (fdChannels.profile && prPPf > 0 && prAdSpend > 0 && prPdQCBf > 0) {
+    const cpl = prAdSpend / prPdQCBf;
+    const roas = prPdCash > 0 ? prPdCash / prAdSpend : 0;
+    ppChannels.push({ name: 'Profile Funnel', spend: prAdSpend, paidQCs: prPdQCBf, cpl, paidCash: prPdCash, roas, cplB: cplBench.profile });
+  }
+  if (fdChannels.webinar && webPPf > 0 && webAdSpend > 0 && webPdQCBf > 0) {
+    const cpl = webAdSpend / webPdQCBf;
+    const roas = webPdCash > 0 ? webPdCash / webAdSpend : 0;
+    ppChannels.push({ name: 'Webinar Funnel', spend: webAdSpend, paidQCs: webPdQCBf, cpl, paidCash: webPdCash, roas, cplB: cplBench.webinar });
+  }
+
+  if (ppChannels.length > 0) {
+    function ppPill(roas, cpl, cplB) {
+      if (roas >= roasBench && cpl <= cplB) return '<span class="fd-pp-pill strong">Strong</span>';
+      if (roas >= 1.5 || cpl <= cplB * 1.5) return '<span class="fd-pp-pill average">Average</span>';
+      return '<span class="fd-pp-pill needs-work">Needs Work</span>';
+    }
+
+    srcHtml += '<div class="fd-paid-perf">';
+    srcHtml += '<div class="fd-paid-perf-title">PAID PERFORMANCE</div>';
+    srcHtml += '<div class="fd-pp-colhdr"><span>Channel</span><span>Ad Spend</span><span>Paid QCs</span><span>CPL</span><span>Paid Cash</span><span>ROAS</span><span>Status</span></div>';
+
+    ppChannels.forEach(c => {
+      srcHtml += `<div class="fd-pp-card"><div class="fd-pp-card-row">
+        <span class="fd-pp-ch">${c.name}</span>
+        <span class="fd-pp-val">${dollar(c.spend)}</span>
+        <span class="fd-pp-val">${fmtD(c.paidQCs)}</span>
+        <span class="fd-pp-val">${dollar(c.cpl)}</span>
+        <span class="fd-pp-val">${dollar(c.paidCash)}</span>
+        <span class="fd-pp-val">${fmt(c.roas, 1)}×</span>
+        <span class="fd-pp-val">${ppPill(c.roas, c.cpl, c.cplB)}</span>
+      </div></div>`;
+    });
+
+    // Total row (outside cards)
+    const ttlSpend = ppChannels.reduce((s, c) => s + c.spend, 0);
+    const ttlPdQCs = ppChannels.reduce((s, c) => s + c.paidQCs, 0);
+    const ttlPdCash = ppChannels.reduce((s, c) => s + c.paidCash, 0);
+    const ttlCPL = ttlPdQCs > 0 ? ttlSpend / ttlPdQCs : 0;
+    const ttlROAS = ttlSpend > 0 ? ttlPdCash / ttlSpend : 0;
+    srcHtml += `<div class="fd-pp-total">
+      <span class="fd-pp-ch">Total</span>
+      <span class="fd-pp-val">${dollar(ttlSpend)}</span>
+      <span class="fd-pp-val">${fmtD(ttlPdQCs)}</span>
+      <span class="fd-pp-val">${dollar(ttlCPL)}</span>
+      <span class="fd-pp-val cash">${dollar(ttlPdCash)}</span>
+      <span class="fd-pp-val">${fmt(ttlROAS, 1)}×</span>
+      <span></span>
+    </div>`;
+
+    srcHtml += '</div>';
+  }
+
+  srcHtml += '<div class="fd-src-wrap">';
+  srcHtml += '<div class="fd-src-colhdr"><span>Channel</span><span>QCs Booked</span><span>Closes</span><span>Cash Collected</span><span>% of Total</span></div>';
+
+  // VSL card
+  if (fdChannels.vsl && vslQCB > 0) {
+    srcHtml += '<div class="fd-src-card">';
+    srcHtml += srcCardHdr('VSL Funnel', vslQCB, vslCloses, vslCloses * pr.cashAov, vslHasRates);
+    if (vslPPf > 0) {
+      srcHtml += srcSub('organic', vslOrgQCBf, vslOrgCl, vslOrgCash);
+      srcHtml += srcSub('paid', vslPdQCBf, vslPdCl, vslPdCash);
+    }
+    srcHtml += '</div>';
+  }
+
+  // Profile card
+  if (fdChannels.profile && prQCB > 0) {
+    srcHtml += '<div class="fd-src-card">';
+    srcHtml += srcCardHdr('Profile Funnel', prQCB, prCloses, prCloses * pr.cashAov, prHasRates);
+    if (prPPf > 0) {
+      srcHtml += srcSub('organic', prOrgQCBf, prOrgCl, prOrgCash);
+      srcHtml += srcSub('paid', prPdQCBf, prPdCl, prPdCash);
+    }
+    srcHtml += '</div>';
+  }
+
+  // Webinar Funnel card
+  if (fdChannels.webinar && webQCB > 0) {
+    srcHtml += '<div class="fd-src-card">';
+    srcHtml += srcCardHdr('Webinar Funnel', webQCB, webCloses, webCloses * pr.cashAov, webHasRates);
+    if (webPPf > 0) {
+      srcHtml += srcSub('organic', webOrgQCBf, webOrgCl, webOrgCash);
+      srcHtml += srcSub('paid', webPdQCBf, webPdCl, webPdCash);
+    }
+    srcHtml += '</div>';
+  }
+
+  // Total row (outside cards)
+  srcHtml += `<div class="fd-src-total">
+    <span class="fd-src-total-label">Total</span>
+    <span class="fd-src-val">${fmtD(totalQCB)}</span>
+    <span class="fd-src-val">${hasRates ? fmtD(totalCloses) : '—'}</span>
+    <span class="fd-src-val ${hasRates ? 'cash' : ''}">${hasRates ? dollar(totalCash) : '—'}</span>
+    <span class="fd-src-pct" style="font-size:11px;color:rgba(255,255,255,0.3);text-align:right">${hasRates ? '100%' : '—'}</span>
+  </div>`;
+  srcHtml += '</div>';
+
+  // ── Channel summary for gap/CVO sections ──
+  const chData = [];
+  if (fdChannels.vsl && vslQCB > 0)     chData.push({ name: 'VSL Funnel', qcb: vslQCB, closes: vslCloses, cash: vslCloses * pr.cashAov });
+  if (fdChannels.profile && prQCB > 0)   chData.push({ name: 'Profile Funnel', qcb: prQCB, closes: prCloses, cash: prCloses * pr.cashAov });
+  if (fdChannels.webinar && webQCB > 0)  chData.push({ name: 'Webinar Funnel', qcb: webQCB, closes: webCloses, cash: webCloses * pr.cashAov });
+
+  // ── Sections 7-10 require rates + goal ──
+  let gapHtml = '';
+  let cvoHtml = '';
+  let actionHtml = '';
+  let dailyHtml = '';
+
+  if (goal > 0 && hasRates && avgShow > 0 && avgClose > 0) {
+    const gap = goal - totalCash;
+
+    // Dominant channel
+    const cashVals = chData.map(c => c.cash);
+    const maxCash = Math.max(...cashVals);
+    const dominant = chData.find(c => c.cash === maxCash)?.name || 'N/A';
+    const domPct = totalCash > 0 ? fmt(maxCash / totalCash * 100, 0) : '0';
+
+    // ── FIX 2: Per-channel optimisation ──
+    // Per-channel blended benchmarks (raise each channel's rates to its own benchmark)
+    const chOpt = [];
+    if (fdChannels.vsl && vslQCB > 0) {
+      const sB = Math.max(vslShow, vslShowBench);
+      const cB = Math.max(vslClose, vslCloseBench);
+      const share = (vslQCB / totalQCB) * goal;
+      const qcNeed = (pr.cashAov > 0 && sB > 0 && cB > 0) ? share / pr.cashAov / sB / cB : vslQCB;
+      chOpt.push({ name: 'VSL', qcb: vslQCB, optQCB: qcNeed, sB, cB, conv: vslConv, volLabel: 'impr' });
+    }
+    if (fdChannels.profile && prQCB > 0) {
+      const sB = Math.max(prShow, prShowBench);
+      const cB = Math.max(prClose, prCloseBench);
+      const share = (prQCB / totalQCB) * goal;
+      const qcNeed = (pr.cashAov > 0 && sB > 0 && cB > 0) ? share / pr.cashAov / sB / cB : prQCB;
+      chOpt.push({ name: 'Profile', qcb: prQCB, optQCB: qcNeed, sB, cB, conv: prConv, volLabel: 'reach' });
+    }
+    if (fdChannels.webinar && webQCB > 0) {
+      const sB = Math.max(webShow, webShowBench);
+      const cB = Math.max(webClose, webCloseBench);
+      const share = (webQCB / totalQCB) * goal;
+      const qcNeed = (pr.cashAov > 0 && sB > 0 && cB > 0) ? share / pr.cashAov / sB / cB : webQCB;
+      chOpt.push({ name: 'Webinar Funnel', qcb: webQCB, optQCB: qcNeed, sB, cB, conv: webConv, volLabel: 'regs' });
+    }
+
+    const optQCB = chOpt.reduce((s, c) => s + c.optQCB, 0);
+
+    // Weighted-average optimised show/close (weighted by optimised QCs per channel)
+    let oWShow = 0, oWClose = 0;
+    chOpt.forEach(c => { oWShow += c.optQCB * c.sB; oWClose += c.optQCB * c.cB; });
+    const optShow  = optQCB > 0 ? oWShow / optQCB : showBench;
+    const optClose = optQCB > 0 ? oWClose / optQCB : closeBench;
+
+    // Cash at current QCBs but optimised rates (per-channel)
+    const optCashAtCurrentQCB = chOpt.reduce((s, c) => s + c.qcb * c.sB * c.cB * pr.cashAov, 0);
+    const addlQCB = Math.max(0, Math.ceil(optQCB - totalQCB));
+
+    // FIX 1: Update target bar with optimised QCB
+    if (tgtBar && tgtBar.style.display !== 'none') {
+      document.getElementById('fd-tgt-real').textContent = fmt(Math.ceil(optQCB));
+      const tgtGap = Math.ceil(optQCB) - Math.round(totalQCB);
+      document.getElementById('fd-tgt-gap').textContent = totalQCB > 0 ? (tgtGap > 0 ? '+' + fmt(tgtGap) + ' more needed' : 'On track') : '';
+    }
+
+    let sentence = `Your <strong>${dominant}</strong> drives <strong>${domPct}%</strong> of your cash. Raising blended show rate to <strong>${pc(optShow)}</strong> and close rate to <strong>${pc(optClose)}</strong> gets you to <strong>${dollar(optCashAtCurrentQCB)}</strong>.`;
+
+    if (optCashAtCurrentQCB < goal && addlQCB > 0) {
+      sentence += ` You also need <strong>${fmt(addlQCB)}</strong> additional QCs booked per month.`;
+    }
+
+    const gapLabel = gap > 0 ? dollar(gap) : dollar(0);
+    const gapSub = gap > 0 ? 'per month at current rates' : 'you are hitting your goal';
+
+    // Section 7: Gap callout
+    gapHtml = `<div class="nc-callout">
+      <div class="nc-callout-left">
+        <div class="nc-callout-eyebrow">Gap to Goal</div>
+        <div class="nc-callout-number">${gapLabel}</div>
+        <div class="nc-callout-spend">${gapSub}</div>
+      </div>
+      <div class="nc-callout-divider"></div>
+      <div class="nc-callout-text">${sentence}</div>
+    </div>`;
+
+    // Section 8: Current vs Optimised
+    const curObj = { qcsB: totalQCB, showR: avgShow, closeR: avgClose, qcsT: totalQcsT, closes: totalCloses };
+    curObj.cash = totalCash;
+    curObj.cashAov = pr.cashAov;
+
+    const optQcsT2   = chOpt.reduce((s, c) => s + c.optQCB * c.sB, 0);
+    const optCloses2 = chOpt.reduce((s, c) => s + c.optQCB * c.sB * c.cB, 0);
+    const optObj = { qcsB: optQCB, showR: optShow, closeR: optClose, qcsT: optQcsT2, closes: optCloses2 };
+    optObj.cash    = optCloses2 * pr.cashAov;
+    optObj.cashAov = pr.cashAov;
+
+    // FIX 3: Implied volume per channel
+    const curVolParts = [], optVolParts = [];
+    chOpt.forEach(c => {
+      const curVol = c.qcb > 0 && c.conv > 0 ? Math.round(c.qcb / c.conv) : 0;
+      const optVol = c.optQCB > 0 && c.conv > 0 ? Math.ceil(c.optQCB / c.conv) : 0;
+      if (curVol > 0) curVolParts.push(`${c.name}: ${fmt(curVol)} ${c.volLabel}`);
+      if (optVol > 0) optVolParts.push(`${c.name}: ${fmt(optVol)} ${c.volLabel}`);
+    });
+
+    cvoHtml = renderCalcCVO(curObj, optObj, curVolParts.join(' · '), optVolParts.join(' · '));
+
+    // Section 9: Action block
+    const showAtBench  = avgShow >= optShow - 0.001;
+    const closeAtBench = avgClose >= optClose - 0.001;
+
+    let act1, act2, act3;
+    if (showAtBench) {
+      act1 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text muted">Show rate is already at benchmark — maintain ${pc(avgShow)}</div></div></div>`;
+    } else {
+      const addlQcsT = (totalQCB * optShow) - totalQcsT;
+      act1 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text">Raise blended show rate from ${pc(avgShow)} → ${pc(optShow)}</div><div class="fd-action-sub">Adds ${fmtD(addlQcsT)} additional QCs taken per month at current bookings</div></div></div>`;
+    }
+
+    if (closeAtBench) {
+      act2 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text muted">Close rate is already at benchmark — maintain ${pc(avgClose)}</div></div></div>`;
+    } else {
+      const curClosesAtOptShow = totalQCB * optShow * avgClose;
+      const optClosesAtOptShow = totalQCB * optShow * optClose;
+      act2 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text">Raise blended close rate from ${pc(avgClose)} → ${pc(optClose)}</div><div class="fd-action-sub">Increases closes from ${fmtD(curClosesAtOptShow)} to ${fmtD(optClosesAtOptShow)} at current QC volume</div></div></div>`;
+    }
+
+    if (addlQCB > 0) {
+      act3 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text">Book an additional ${fmt(addlQCB)} QCs / month</div><div class="fd-action-sub">Even with optimised rates, you need ${fmtD(optQCB)} total QCs booked. Current: ${fmtD(totalQCB)}.</div></div></div>`;
+    } else {
+      act3 = `<div class="fd-action-item"><div class="fd-action-dot"></div><div><div class="fd-action-text muted">No additional QCs needed — optimised rates alone hit your goal</div></div></div>`;
+    }
+
+    actionHtml = `<div class="fd-actions">
+      <div class="fd-actions-title">TO REACH ${dollar(goal)} YOU NEED TO</div>
+      ${act1}${act2}${act3}
+    </div>`;
+
+    // Section 10: Daily cards
+    const D = 30.42;
+    const dailyCards = [
+      { val: dollar(optObj.cash / D), lbl: 'Cash / Day', green: true, cash: true },
+      { val: fmt(optObj.closes / D, 2), lbl: 'Closes / Day' },
+      { val: fmt(optObj.qcsT / D, 2), lbl: 'QCs Taken / Day' },
+      { val: fmt(optObj.qcsB / D, 2), lbl: 'QCs Booked / Day' },
+    ];
+    dailyHtml = `<div class="card" style="margin-bottom:48px">
+      <div class="section-title" style="margin-bottom:24px">Daily Simplified</div>
+      <div class="daily-grid">${dailyCards.map(c=>`<div class="daily-card${c.cash?' cash-card':''}">${c.green?'<div class="daily-val green">':'<div class="daily-val">'}${c.val}</div><div class="daily-lbl">${c.lbl}</div></div>`).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = srcHtml + gapHtml + cvoHtml + actionHtml + dailyHtml;
+}
+
+// ─── HOME CANVAS (grid + dots) ───────────────────────────────
+function initHomeCanvas() {
+  const canvas = document.getElementById('homeCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function draw() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const S = 26;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const cols = Math.ceil(canvas.width / (S * 1.73)) + 2;
+    const rows = Math.ceil(canvas.height / (S * 1.5)) + 2;
+    const maxD = Math.sqrt(cx * cx + cy * cy);
+
+    for (let row = -1; row < rows; row++) {
+      for (let col = -1; col < cols; col++) {
+        const x = col * S * 1.732 + (row % 2) * S * 0.866 - S;
+        const y = row * S * 1.5 - S;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        const proximity = 1 - Math.min(1, dist / maxD);
+        const alpha = 0.03 + proximity * 0.14;
+        const fillAlpha = proximity > 0.7 ? (proximity - 0.7) * 0.04 : null;
+
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 180 * (60 * i - 30);
+          const px = x + S * 0.9 * Math.cos(angle);
+          const py = y + S * 0.9 * Math.sin(angle);
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        if (fillAlpha) {
+          ctx.fillStyle = `rgba(143,191,107,${fillAlpha})`;
+          ctx.fill();
+        }
+        ctx.strokeStyle = `rgba(143,191,107,${alpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+
+    for (let row = -1; row < rows; row++) {
+      for (let col = -1; col < cols; col++) {
+        const x = col * S * 1.732 + (row % 2) * S * 0.866 - S;
+        const y = row * S * 1.5 - S;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        if (dist < 180) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(143,191,107,${0.1 + Math.max(0, (180 - dist) / 180) * 0.3})`;
+          ctx.fill();
+        }
+      }
+    }
+  }
+  draw();
+  window.addEventListener('resize', draw);
+}
+
+// ─── HOME LAUNCH ─────────────────────────────────────────────
+function initHomeLaunch() {
+  const openBtn = document.getElementById('homeOpenBtn');
+  if (!openBtn) return;
+
+  openBtn.addEventListener('click', () => navigate('funnel'));
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('page-home').classList.contains('active')) return;
+    if (e.key === 'Enter') navigate('funnel');
+  });
+}
+
+// ─── ROUTER ──────────────────────────────────────────────────
+function setHomeElements(visible) {
+  const d = visible ? '' : 'none';
+  ['homeCanvas','homeStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = d;
+  });
+  document.querySelectorAll('.home-corner').forEach(el => { el.style.display = d; });
+  document.getElementById('app-header').style.display = visible ? 'none' : 'flex';
+}
+function navigate(route) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + route).classList.add('active');
+  setHomeElements(false);
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-home').classList.add('active');
+  setHomeElements(true);
+  window.scrollTo(0, 0);
+}
+
+// ─── SPLASH ──────────────────────────────────────────────────
+function runSplash() {
+  var lt = document.getElementById('s-line-top');
+  var tx = document.getElementById('s-text');
+  var lb = document.getElementById('s-line-bot');
+  var sp = document.getElementById('splash-screen');
+
+  setTimeout(function(){ lt.style.transition='transform 0.5s ease-out'; lt.style.transform='scaleX(1)'; }, 200);
+  setTimeout(function(){ tx.style.transition='opacity 0.5s ease-out'; tx.style.opacity='1'; }, 400);
+  setTimeout(function(){ lb.style.transition='transform 0.5s ease-out'; lb.style.transform='scaleX(1)'; }, 600);
+  setTimeout(function(){ sp.style.transition='opacity 0.4s ease-out'; sp.style.opacity='0'; }, 2100);
+  setTimeout(function(){ sp.style.display='none'; document.getElementById('app').classList.add('revealed'); }, 2500);
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initHomeCanvas();
+  initHomeLaunch();
+  runSplash();
+});
+</script>
+</body>
+</html>
